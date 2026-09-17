@@ -7,6 +7,7 @@ import toast from 'react-hot-toast'
 
 function StudentPill({ assignment, selected, onSelect }) {
   const s = assignment.student
+  const classSection = [s?.class?.name, s?.section?.name].filter(Boolean).join(' - ')
   return (
     <button
       onClick={() => onSelect(assignment)}
@@ -17,11 +18,11 @@ function StudentPill({ assignment, selected, onSelect }) {
           : 'bg-white border-gray-200 hover:border-navy hover:bg-blue-50'
         }
       `}
-      title={`${s?.name} (${s?.class?.name}) — ${assignment.seatId}`}
+      title={`${s?.name} (${classSection}) — ${assignment.seatId}`}
     >
       <span className="font-medium truncate block max-w-[80px]">{s?.name?.split(' ')[0]}</span>
       <span className="text-gray-400 block">{assignment.seatId}</span>
-      <span className="text-blue-600">{s?.class?.name}</span>
+      <span className="text-blue-600">{classSection}</span>
     </button>
   )
 }
