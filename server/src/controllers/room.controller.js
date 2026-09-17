@@ -68,14 +68,31 @@ const createRoom = asyncHandler(async (req, res) => {
     throw new ApiError(400, "name, rows, benchesPerRow, defaultSeatsPerBench required");
   }
 
-  // Generate seats array
+  const seatsPerBench = Number(defaultSeatsPerBench);
+
+  // Position labels per seat count:
+  // 1 → ["L"]
+  // 2 → ["L", "R"]
+  // 3 → ["L", "M", "R"]
+  // 4 → ["1", "2", "3", "4"]
+  const POSITION_LABELS = {
+    1: ["L"],
+    2: ["L", "R"],
+    3: ["L", "M", "R"],
+    4: ["1", "2", "3", "4"],
+  };
+  const positions = POSITION_LABELS[seatsPerBench] ||
+    Array.from({ length: seatsPerBench }, (_, i) => String(i + 1));
+
   const seats = [];
   for (let r = 1; r <= rows; r++) {
     for (let b = 1; b <= benchesPerRow; b++) {
-      for (let p = 1; p <= defaultSeatsPerBench; p++) {
+      for (let p = 0; p < seatsPerBench; p++) {
         seats.push({
-          seatId: `R${r}B${b}P${p}`,
-          row: `R${r}`, bench: b, position: p === 1 ? "L" : "R",
+          seatId: `R${r}B${b}P${positions[p]}`,
+          row: `R${r}`,
+          bench: b,
+          position: positions[p],
           status: "available",
         });
       }
@@ -85,10 +102,16 @@ const createRoom = asyncHandler(async (req, res) => {
   const totalCapacity = seats.length;
   const room = await prisma.room.create({
     data: {
-      schoolId: req.schoolId, name, building: building || "", floor: floor || "",
-      rows: Number(rows), benchesPerRow: Number(benchesPerRow),
-      defaultSeatsPerBench: Number(defaultSeatsPerBench),
-      seats, totalCapacity, usableCapacity: totalCapacity,
+      schoolId: req.schoolId,
+      name,
+      building: building || "",
+      floor: floor || "",
+      rows: Number(rows),
+      benchesPerRow: Number(benchesPerRow),
+      defaultSeatsPerBench: seatsPerBench,
+      seats,
+      totalCapacity,
+      usableCapacity: totalCapacity,
     },
   });
   res.status(201).json(new ApiResponse(201, "Room created", room));
@@ -99,10 +122,59 @@ const updateRoom = asyncHandler(async (req, res) => {
   if (!room) throw new ApiError(404, "Room not found");
   if (room.isLocked) throw new ApiError(403, "Room is locked after exam use");
 
-  const { name, building, floor } = req.body;
+  const { name, building, floor, rows, benchesPerRow, defaultSeatsPerBench } = req.body;
+
+  const layoutChanged =
+    (rows !== undefined && Number(rows) !== room.rows) ||
+    (benchesPerRow !== undefined && Number(benchesPerRow) !== room.benchesPerRow) ||
+    (defaultSeatsPerBench !== undefined && Number(defaultSeatsPerBench) !== room.defaultSeatsPerBench);
+
+  const updateData = {};
+  if (name !== undefined) updateData.name = name;
+  if (building !== undefined) updateData.building = building;
+  if (floor !== undefined) updateData.floor = floor;
+
+  if (layoutChanged) {
+    const newRows = Number(rows ?? room.rows);
+    const newBenches = Number(benchesPerRow ?? room.benchesPerRow);
+    const newSeatsPerBench = Number(defaultSeatsPerBench ?? room.defaultSeatsPerBench);
+
+    const POSITION_LABELS = {
+      1: ["L"],
+      2: ["L", "R"],
+      3: ["L", "M", "R"],
+      4: ["1", "2", "3", "4"],
+    };
+    const positions = POSITION_LABELS[newSeatsPerBench] ||
+      Array.from({ length: newSeatsPerBench }, (_, i) => String(i + 1));
+
+    const seats = [];
+    for (let r = 1; r <= newRows; r++) {
+      for (let b = 1; b <= newBenches; b++) {
+        for (let p = 0; p < newSeatsPerBench; p++) {
+          seats.push({
+            seatId: `R${r}B${b}P${positions[p]}`,
+            row: `R${r}`,
+            bench: b,
+            position: positions[p],
+            status: "available",
+          });
+        }
+      }
+    }
+
+    const totalCapacity = seats.length;
+    updateData.rows = newRows;
+    updateData.benchesPerRow = newBenches;
+    updateData.defaultSeatsPerBench = newSeatsPerBench;
+    updateData.seats = seats;
+    updateData.totalCapacity = totalCapacity;
+    updateData.usableCapacity = totalCapacity;
+  }
+
   const updated = await prisma.room.update({
     where: { id: req.params.id },
-    data: { name, building, floor },
+    data: updateData,
   });
   res.json(new ApiResponse(200, "Room updated", updated));
 });

@@ -149,7 +149,10 @@ export const superadminAPI = {
 }
 
 // ── PUBLIC LOOKUP ─────────────────────────────────────────────────────────────
+// ── PUBLIC LOOKUP ─────────────────────────────────────────────────────────────
 export const lookupAPI = {
-  student: (enrollmentNo) => api.get(`/public/student/${enrollmentNo}`),
-  faculty: (email) => api.get(`/public/faculty/${encodeURIComponent(email)}`),
+  student: (schoolCode, enrollmentNo) =>
+    api.get(`/public/student/${schoolCode}/${enrollmentNo}`),
+  faculty: (schoolCode, email) =>
+    api.get(`/public/faculty/${schoolCode}/${encodeURIComponent(email)}`),
 }

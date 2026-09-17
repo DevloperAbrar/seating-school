@@ -3,7 +3,9 @@ const { studentLookup, facultyLookup } = require("../controllers/lookup.controll
 
 const router = express.Router();
 
-router.get("/student/:enrollmentNo", studentLookup);
-router.get("/faculty/:email", facultyLookup);
+// schoolCode is now required so two schools with the same
+// enrollment number or email don't see each other's data.
+router.get("/student/:schoolCode/:enrollmentNo", studentLookup);
+router.get("/faculty/:schoolCode/:email", facultyLookup);
 
 module.exports = router;

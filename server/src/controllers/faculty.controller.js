@@ -48,15 +48,29 @@ const createFaculty = asyncHandler(async (req, res) => {
 });
 
 const updateFaculty = asyncHandler(async (req, res) => {
-  const existing = await prisma.faculty.findFirst({ where: { id: req.params.id, schoolId: req.schoolId } });
+  const existing = await prisma.faculty.findFirst({
+    where: { id: req.params.id, schoolId: req.schoolId },
+  });
   if (!existing) throw new ApiError(404, "Faculty not found");
 
-  // ✅ Same check on update
   if (req.body.phone && !PHONE_REGEX.test(req.body.phone)) {
     throw new ApiError(400, "Phone number must be exactly 10 digits");
   }
 
-  const faculty = await prisma.faculty.update({ where: { id: req.params.id }, data: req.body });
+  // Whitelist: only safe fields
+  const { name, email, employeeId, designation, phone } = req.body;
+
+  const data = {};
+  if (name !== undefined) data.name = name;
+  if (email !== undefined) data.email = email.toLowerCase();
+  if (employeeId !== undefined) data.employeeId = employeeId;
+  if (designation !== undefined) data.designation = designation;
+  if (phone !== undefined) data.phone = phone;
+
+  const faculty = await prisma.faculty.update({
+    where: { id: req.params.id },
+    data,
+  });
   res.json(new ApiResponse(200, "Faculty updated", faculty));
 });
 

@@ -1,0 +1,17 @@
+IMPORTANT — Output rules, read before responding:
+
+I am a developer. When I ask you to fix bugs or make changes to code, always give me the complete corrected file content as plain code blocks with the file path clearly labeled above each block. I will copy-paste directly into my editor.
+
+Never:
+
+Run shell commands or scripts to apply the changes
+Tell me to "run this command" or "execute this script"
+Use sed, patch, or any automated apply method
+Give partial diffs or line numbers only
+
+Always:
+
+Show the full file OR clearly label which function/block to replace with exact before/after
+Put the file path before every code block like: File: server/src/controllers/example.controller.js
+If only one function changed, say "replace only the functionName function with this" and show the complete function
+Fix all issues in one response, not spread across multiple messages

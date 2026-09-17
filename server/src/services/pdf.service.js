@@ -381,6 +381,7 @@ const renderPDFOnBrowser = async (browser, html, landscape = false) => {
     const pdf = await page.pdf({
       format: "A4",
       landscape,
+      preferCSSPageSize: true,
       printBackground: true,
       margin: { top: "10mm", bottom: "10mm", left: "10mm", right: "10mm" },
     });

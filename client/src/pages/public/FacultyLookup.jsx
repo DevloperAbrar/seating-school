@@ -5,6 +5,7 @@ import { fmtDate } from '../../utils'
 import logo from '../../assets/logo.png'
 
 export default function FacultyLookup() {
+  const [schoolCode, setSchoolCode] = useState('')
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
@@ -12,12 +13,13 @@ export default function FacultyLookup() {
 
   const handleSearch = async () => {
     const val = input.trim().toLowerCase()
-    if (!val) return
+    const code = schoolCode.trim()
+    if (!val || !code) return
     setLoading(true)
     setError(null)
     setResult(null)
     try {
-      const res = await lookupAPI.faculty(val)
+      const res = await lookupAPI.faculty(code, val)
       setResult(res.data.data)
     } catch (err) {
       setError(err.response?.data?.message || 'Faculty not found')

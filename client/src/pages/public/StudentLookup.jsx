@@ -5,6 +5,7 @@ import { fmtDate } from '../../utils'
 import logo from '../../assets/logo.png'
 
 export default function StudentLookup() {
+  const [schoolCode, setSchoolCode] = useState('')
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
@@ -12,12 +13,13 @@ export default function StudentLookup() {
 
   const handleSearch = async () => {
     const val = input.trim()
-    if (!val) return
+    const code = schoolCode.trim()
+    if (!val || !code) return
     setLoading(true)
     setError(null)
     setResult(null)
     try {
-      const res = await lookupAPI.student(val)
+      const res = await lookupAPI.student(code, val)
       setResult(res.data.data)
     } catch (err) {
       setError(err.response?.data?.message || 'Student not found')
@@ -76,6 +78,19 @@ export default function StudentLookup() {
             <p className="text-sm text-gray-500 mb-6">Enter your enrollment number to find your exam seat</p>
 
             {/* Search bar */}
+            {/* School code input */}
+            <div className="relative mb-3">
+              <input
+                className="w-full px-4 py-2.5 rounded-lg text-sm border border-gray-200 outline-none bg-white transition-all"
+                placeholder="School code (e.g. dps2026)"
+                value={schoolCode}
+                onChange={(e) => setSchoolCode(e.target.value)}
+                onFocus={e => e.target.style.borderColor = '#1a3a7c'}
+                onBlur={e => e.target.style.borderColor = '#e5e7eb'}
+              />
+            </div>
+
+            {/* Enrollment + search button */}
             <div className="flex gap-2 mb-5">
               <div className="relative flex-1">
                 <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -92,7 +107,7 @@ export default function StudentLookup() {
               </div>
               <button
                 onClick={handleSearch}
-                disabled={loading}
+                disabled={loading || !input.trim() || !schoolCode.trim()}
                 className="px-5 py-2.5 rounded-lg text-white text-sm font-semibold disabled:opacity-70 transition-opacity"
                 style={{ background: 'linear-gradient(90deg, #f97316, #ea6c0a)' }}
               >

@@ -62,14 +62,21 @@ const createStudent = asyncHandler(async (req, res) => {
 });
 
 const updateStudent = asyncHandler(async (req, res) => {
-  const existing = await prisma.student.findFirst({ where: { id: req.params.id, schoolId: req.schoolId, sessionId: req.sessionId } });
+  const existing = await prisma.student.findFirst({
+    where: { id: req.params.id, schoolId: req.schoolId, sessionId: req.sessionId },
+  });
   if (!existing) throw new ApiError(404, "Student not found");
 
-  // Map frontend field names to Prisma field names
-  const data = { ...req.body };
-  if (data.class) { data.classId = data.class; delete data.class; }
-  if (data.section) { data.sectionId = data.section; delete data.section; }
-  if (data.parentEmail) data.parentEmail = data.parentEmail.toLowerCase();
+  // Whitelist: only these fields may be changed after creation
+  const { name, class: classId, section, parentName, parentEmail, specialNeeds } = req.body;
+
+  const data = {};
+  if (name !== undefined) data.name = name;
+  if (classId !== undefined) data.classId = classId;
+  if (section !== undefined) data.sectionId = section;
+  if (parentName !== undefined) data.parentName = parentName;
+  if (parentEmail !== undefined) data.parentEmail = parentEmail.toLowerCase();
+  if (specialNeeds !== undefined) data.specialNeeds = Boolean(specialNeeds);
 
   const student = await prisma.student.update({
     where: { id: req.params.id },

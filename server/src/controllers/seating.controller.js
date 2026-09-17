@@ -91,15 +91,31 @@ const swapSeats = asyncHandler(async (req, res) => {
   const { studentA, studentB } = req.body;
   if (!studentA || !studentB) throw new ApiError(400, "studentA and studentB required");
 
+  // Verify the shift belongs to this school before touching any rows
+  const shift = await prisma.shift.findFirst({
+    where: { id: req.params.shiftId, schoolId: req.schoolId, sessionId: req.sessionId },
+  });
+  if (!shift) throw new ApiError(404, "Shift not found");
+
   const [a, b] = await Promise.all([
-    prisma.seatingAssignment.findFirst({ where: { shiftId: req.params.shiftId, studentId: studentA } }),
-    prisma.seatingAssignment.findFirst({ where: { shiftId: req.params.shiftId, studentId: studentB } }),
+    prisma.seatingAssignment.findFirst({
+      where: { shiftId: req.params.shiftId, studentId: studentA, schoolId: req.schoolId },
+    }),
+    prisma.seatingAssignment.findFirst({
+      where: { shiftId: req.params.shiftId, studentId: studentB, schoolId: req.schoolId },
+    }),
   ]);
   if (!a || !b) throw new ApiError(404, "One or both student assignments not found");
 
   await Promise.all([
-    prisma.seatingAssignment.update({ where: { id: a.id }, data: { roomId: b.roomId, seatId: b.seatId, row: b.row, bench: b.bench, position: b.position, isManualOverride: true } }),
-    prisma.seatingAssignment.update({ where: { id: b.id }, data: { roomId: a.roomId, seatId: a.seatId, row: a.row, bench: a.bench, position: a.position, isManualOverride: true } }),
+    prisma.seatingAssignment.update({
+      where: { id: a.id },
+      data: { roomId: b.roomId, seatId: b.seatId, row: b.row, bench: b.bench, position: b.position, isManualOverride: true },
+    }),
+    prisma.seatingAssignment.update({
+      where: { id: b.id },
+      data: { roomId: a.roomId, seatId: a.seatId, row: a.row, bench: a.bench, position: a.position, isManualOverride: true },
+    }),
   ]);
   res.json(new ApiResponse(200, "Seats swapped successfully"));
 });
@@ -108,19 +124,38 @@ const manualAssign = asyncHandler(async (req, res) => {
   const { studentId, roomId, seatId } = req.body;
   if (!studentId || !roomId || !seatId) throw new ApiError(400, "studentId, roomId, seatId required");
 
-  const taken = await prisma.seatingAssignment.findFirst({ where: { shiftId: req.params.shiftId, roomId, seatId } });
+  // Verify the shift belongs to this school
+  const shift = await prisma.shift.findFirst({
+    where: { id: req.params.shiftId, schoolId: req.schoolId, sessionId: req.sessionId },
+  });
+  if (!shift) throw new ApiError(404, "Shift not found");
+
+  const taken = await prisma.seatingAssignment.findFirst({
+    where: { shiftId: req.params.shiftId, roomId, seatId, schoolId: req.schoolId },
+  });
   if (taken) throw new ApiError(409, `Seat ${seatId} is already occupied`);
 
   const room = await prisma.room.findFirst({ where: { id: roomId, schoolId: req.schoolId } });
   const seat = room?.seats?.find((s) => s.seatId === seatId);
   if (!seat) throw new ApiError(404, "Seat not found in room");
 
-  await prisma.seatingAssignment.deleteMany({ where: { shiftId: req.params.shiftId, studentId } });
+  await prisma.seatingAssignment.deleteMany({
+    where: { shiftId: req.params.shiftId, studentId, schoolId: req.schoolId },
+  });
 
   const assignment = await prisma.seatingAssignment.create({
     data: {
-      schoolId: req.schoolId, sessionId: req.sessionId, examId: req.params.examId, shiftId: req.params.shiftId,
-      roomId, studentId, seatId, row: seat.row, bench: seat.bench, position: seat.position, isManualOverride: true,
+      schoolId: req.schoolId,
+      sessionId: req.sessionId,
+      examId: req.params.examId,
+      shiftId: req.params.shiftId,
+      roomId,
+      studentId,
+      seatId,
+      row: seat.row,
+      bench: seat.bench,
+      position: seat.position,
+      isManualOverride: true,
     },
   });
   res.json(new ApiResponse(200, "Manual assignment done", assignment));
