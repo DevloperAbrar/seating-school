@@ -259,6 +259,7 @@ model Exam {
   title        String
   academicYear String
   examDate     DateTime
+  examEndDate  DateTime?
   description  String?
   status       ExamStatus @default(draft)
   isLocked     Boolean    @default(false)

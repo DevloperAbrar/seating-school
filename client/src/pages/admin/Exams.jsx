@@ -36,7 +36,10 @@ export default function Exams() {
   }
 
   const onSubmit = (data) => {
+<<<<<<< Updated upstream
     // send null explicitly if end date cleared
+=======
+>>>>>>> Stashed changes
     const payload = {
       ...data,
       examEndDate: data.examEndDate || null,
@@ -58,9 +61,13 @@ export default function Exams() {
   }
 
   const fmtDateRange = (r) => {
+<<<<<<< Updated upstream
     if (r.examEndDate) {
       return `${fmtDate(r.examDate)} – ${fmtDate(r.examEndDate)}`
     }
+=======
+    if (r.examEndDate) return `${fmtDate(r.examDate)} – ${fmtDate(r.examEndDate)}`
+>>>>>>> Stashed changes
     return fmtDate(r.examDate)
   }
 
@@ -121,15 +128,39 @@ export default function Exams() {
 
       <Modal isOpen={modal.isOpen} onClose={modal.close} title={modal.data?.id ? 'Edit Exam' : 'Create Exam'} size="md">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <Input label="Exam Title" required placeholder="e.g. End Semester Examination Nov 2024" error={errors.title?.message} {...register('title', { required: 'Required' })} />
+          <Input
+            label="Exam Title"
+            required
+            placeholder="e.g. End Semester Examination Nov 2024"
+            error={errors.title?.message}
+            {...register('title', { required: 'Required' })}
+          />
           <div className="grid grid-cols-2 gap-4">
+<<<<<<< Updated upstream
             <Input label="Academic Year" required placeholder="e.g. 2024-25" error={errors.academicYear?.message} {...register('academicYear', { required: 'Required' })} />
             <Input label="Start Date" type="date" required error={errors.examDate?.message} {...register('examDate', { required: 'Required' })} />
+=======
+            <Input
+              label="Academic Year"
+              required
+              placeholder="e.g. 2024-25"
+              error={errors.academicYear?.message}
+              {...register('academicYear', { required: 'Required' })}
+            />
+            <Input
+              label="Start Date"
+              type="date"
+              required
+              error={errors.examDate?.message}
+              {...register('examDate', { required: 'Required' })}
+            />
+>>>>>>> Stashed changes
           </div>
           <div className="grid grid-cols-2 gap-4">
             <Input
               label="End Date"
               type="date"
+<<<<<<< Updated upstream
               placeholder="Optional — for multi-day exams"
               error={errors.examEndDate?.message}
               {...register('examEndDate')}
@@ -138,13 +169,28 @@ export default function Exams() {
           </div>
           <p className="text-xs text-gray-400 -mt-2">
             Set an end date if the same seating plan applies across multiple days.
+=======
+              error={errors.examEndDate?.message}
+              {...register('examEndDate')}
+            />
+            <div />
+          </div>
+          <p className="text-xs text-gray-400 -mt-2">
+            End date is optional — set it only for multi-day exams.
+>>>>>>> Stashed changes
           </p>
           {modal.data?.id && (
             <Select label="Status" {...register('status')}>
-              {['draft', 'published', 'ongoing', 'completed'].map((s) => <option key={s} value={s}>{s}</option>)}
+              {['draft', 'published', 'ongoing', 'completed'].map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
             </Select>
           )}
-          <Textarea label="Description" placeholder="Optional notes about the exam" {...register('description')} />
+          <Textarea
+            label="Description"
+            placeholder="Optional notes about the exam"
+            {...register('description')}
+          />
           <div className="flex justify-end gap-3">
             <Button variant="secondary" type="button" onClick={modal.close}>Cancel</Button>
             <Button type="submit" loading={ml}>Save</Button>
@@ -152,7 +198,14 @@ export default function Exams() {
         </form>
       </Modal>
 
-      <ConfirmModal isOpen={confirm.isOpen} onClose={confirm.close} onConfirm={onDelete} loading={ml} title="Delete Exam" message={`Delete "${confirm.data?.title}"? All shifts will also be deleted.`} />
+      <ConfirmModal
+        isOpen={confirm.isOpen}
+        onClose={confirm.close}
+        onConfirm={onDelete}
+        loading={ml}
+        title="Delete Exam"
+        message={`Delete "${confirm.data?.title}"? All shifts will also be deleted.`}
+      />
     </div>
   )
 }
