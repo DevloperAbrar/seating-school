@@ -136,10 +136,13 @@ export default function Exams() {
             {...register('title', { required: 'Required' })}
           />
           <div className="grid grid-cols-2 gap-4">
+<<<<<<< HEAD
 <<<<<<< Updated upstream
             <Input label="Academic Year" required placeholder="e.g. 2024-25" error={errors.academicYear?.message} {...register('academicYear', { required: 'Required' })} />
             <Input label="Start Date" type="date" required error={errors.examDate?.message} {...register('examDate', { required: 'Required' })} />
 =======
+=======
+>>>>>>> 477df60cb12498f684ea56a167b2eb1ddd9dd47c
             <Input
               label="Academic Year"
               required
@@ -154,7 +157,10 @@ export default function Exams() {
               error={errors.examDate?.message}
               {...register('examDate', { required: 'Required' })}
             />
+<<<<<<< HEAD
 >>>>>>> Stashed changes
+=======
+>>>>>>> 477df60cb12498f684ea56a167b2eb1ddd9dd47c
           </div>
           <div className="grid grid-cols-2 gap-4">
             <Input
