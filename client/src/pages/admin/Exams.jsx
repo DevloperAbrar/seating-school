@@ -36,10 +36,6 @@ export default function Exams() {
   }
 
   const onSubmit = (data) => {
-<<<<<<< Updated upstream
-    // send null explicitly if end date cleared
-=======
->>>>>>> Stashed changes
     const payload = {
       ...data,
       examEndDate: data.examEndDate || null,
@@ -61,13 +57,9 @@ export default function Exams() {
   }
 
   const fmtDateRange = (r) => {
-<<<<<<< Updated upstream
     if (r.examEndDate) {
       return `${fmtDate(r.examDate)} – ${fmtDate(r.examEndDate)}`
     }
-=======
-    if (r.examEndDate) return `${fmtDate(r.examDate)} – ${fmtDate(r.examEndDate)}`
->>>>>>> Stashed changes
     return fmtDate(r.examDate)
   }
 
@@ -136,13 +128,6 @@ export default function Exams() {
             {...register('title', { required: 'Required' })}
           />
           <div className="grid grid-cols-2 gap-4">
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-            <Input label="Academic Year" required placeholder="e.g. 2024-25" error={errors.academicYear?.message} {...register('academicYear', { required: 'Required' })} />
-            <Input label="Start Date" type="date" required error={errors.examDate?.message} {...register('examDate', { required: 'Required' })} />
-=======
-=======
->>>>>>> 477df60cb12498f684ea56a167b2eb1ddd9dd47c
             <Input
               label="Academic Year"
               required
@@ -157,33 +142,19 @@ export default function Exams() {
               error={errors.examDate?.message}
               {...register('examDate', { required: 'Required' })}
             />
-<<<<<<< HEAD
->>>>>>> Stashed changes
-=======
->>>>>>> 477df60cb12498f684ea56a167b2eb1ddd9dd47c
           </div>
           <div className="grid grid-cols-2 gap-4">
             <Input
               label="End Date"
               type="date"
-<<<<<<< Updated upstream
               placeholder="Optional — for multi-day exams"
-              error={errors.examEndDate?.message}
-              {...register('examEndDate')}
-            />
-            <div /> {/* spacer */}
-          </div>
-          <p className="text-xs text-gray-400 -mt-2">
-            Set an end date if the same seating plan applies across multiple days.
-=======
               error={errors.examEndDate?.message}
               {...register('examEndDate')}
             />
             <div />
           </div>
           <p className="text-xs text-gray-400 -mt-2">
-            End date is optional — set it only for multi-day exams.
->>>>>>> Stashed changes
+            Set an end date if the same seating plan applies across multiple days.
           </p>
           {modal.data?.id && (
             <Select label="Status" {...register('status')}>
