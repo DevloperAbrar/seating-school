@@ -3,12 +3,14 @@ const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
 const { prisma } = require("../config/db");
 
+const ACTIVE_STATUSES = ["TRIAL", "ACTIVE"];
+
 const studentLookup = asyncHandler(async (req, res) => {
   const { schoolCode, enrollmentNo } = req.params;
 
   // Resolve school by its public code first
   const school = await prisma.school.findFirst({
-    where: { code: schoolCode, isActive: true },
+    where: { code: schoolCode, status: { in: ACTIVE_STATUSES } },
   });
   if (!school) throw new ApiError(404, "School not found");
 
@@ -59,7 +61,7 @@ const facultyLookup = asyncHandler(async (req, res) => {
   const { schoolCode, email } = req.params;
 
   const school = await prisma.school.findFirst({
-    where: { code: schoolCode, isActive: true },
+    where: { code: schoolCode, status: { in: ACTIVE_STATUSES } },
   });
   if (!school) throw new ApiError(404, "School not found");
 
