@@ -4,6 +4,18 @@ import { lookupAPI } from '../../api'
 import { fmtDate } from '../../utils'
 import logo from '../../assets/logo.png'
 
+// Returns today if today falls within exam range, else returns examDate
+function getDisplayDate(examDate, examEndDate) {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const start = new Date(examDate)
+  start.setHours(0, 0, 0, 0)
+  const end = examEndDate ? new Date(examEndDate) : start
+  end.setHours(0, 0, 0, 0)
+  if (today >= start && today <= end) return today
+  return start
+}
+
 export default function StudentLookup() {
   const [schoolCode, setSchoolCode] = useState('')
   const [input, setInput] = useState('')
@@ -77,7 +89,6 @@ export default function StudentLookup() {
             <h1 className="text-2xl font-bold text-gray-900 mb-1">Seat Lookup</h1>
             <p className="text-sm text-gray-500 mb-6">Enter your enrollment number to find your exam seat</p>
 
-            {/* Search bar */}
             {/* School code input */}
             <div className="relative mb-3">
               <input
@@ -154,9 +165,8 @@ export default function StudentLookup() {
                       {/* Exam header */}
                       <div className="px-4 py-3" style={{ background: '#0d1f4e' }}>
                         <p className="font-semibold text-sm text-white">{a.exam}</p>
-                        {/* after */}
                         <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.55)' }}>
-                          {a.academicYear} · {a.examEndDate ? `${fmtDate(a.examDate)} – ${fmtDate(a.examEndDate)}` : fmtDate(a.examDate)}
+                          {a.academicYear} · {fmtDate(getDisplayDate(a.examDate, a.examEndDate))}
                         </p>
                       </div>
 
