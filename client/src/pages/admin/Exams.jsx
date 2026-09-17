@@ -121,7 +121,13 @@ export default function Exams() {
 
       <Modal isOpen={modal.isOpen} onClose={modal.close} title={modal.data?.id ? 'Edit Exam' : 'Create Exam'} size="md">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <Input label="Exam Title" required placeholder="e.g. End Semester Examination Nov 2024" error={errors.title?.message} {...register('title', { required: 'Required' })} />
+          <Input
+            label="Exam Title"
+            required
+            placeholder="e.g. End Semester Examination Nov 2024"
+            error={errors.title?.message}
+            {...register('title', { required: 'Required' })}
+          />
           <div className="grid grid-cols-2 gap-4">
             <Input label="Academic Year" required placeholder="e.g. 2024-25" error={errors.academicYear?.message} {...register('academicYear', { required: 'Required' })} />
             <Input label="Start Date" type="date" required error={errors.examDate?.message} {...register('examDate', { required: 'Required' })} />
@@ -141,10 +147,16 @@ export default function Exams() {
           </p>
           {modal.data?.id && (
             <Select label="Status" {...register('status')}>
-              {['draft', 'published', 'ongoing', 'completed'].map((s) => <option key={s} value={s}>{s}</option>)}
+              {['draft', 'published', 'ongoing', 'completed'].map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
             </Select>
           )}
-          <Textarea label="Description" placeholder="Optional notes about the exam" {...register('description')} />
+          <Textarea
+            label="Description"
+            placeholder="Optional notes about the exam"
+            {...register('description')}
+          />
           <div className="flex justify-end gap-3">
             <Button variant="secondary" type="button" onClick={modal.close}>Cancel</Button>
             <Button type="submit" loading={ml}>Save</Button>
@@ -152,7 +164,14 @@ export default function Exams() {
         </form>
       </Modal>
 
-      <ConfirmModal isOpen={confirm.isOpen} onClose={confirm.close} onConfirm={onDelete} loading={ml} title="Delete Exam" message={`Delete "${confirm.data?.title}"? All shifts will also be deleted.`} />
+      <ConfirmModal
+        isOpen={confirm.isOpen}
+        onClose={confirm.close}
+        onConfirm={onDelete}
+        loading={ml}
+        title="Delete Exam"
+        message={`Delete "${confirm.data?.title}"? All shifts will also be deleted.`}
+      />
     </div>
   )
 }
