@@ -1,0 +1,371 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SchoolStatus {
+  TRIAL
+  ACTIVE
+  SUSPENDED
+  TERMINATED
+}
+
+enum SubscriptionPlan {
+  TRIAL
+  BASIC
+  STANDARD
+  PREMIUM
+}
+
+enum ExamStatus {
+  draft
+  published
+  ongoing
+  completed
+}
+
+/// ─── TENANT (SCHOOL) ────────────────────────────────────────────────
+/// Renamed from College. A School is permanent; academic years are
+/// modeled separately via Session so nothing here is year-scoped.
+model School {
+  id                String            @id @default(uuid())
+  name              String
+  code              String            @unique // short slug, e.g. "dps2026"
+  contactEmail      String
+  contactPhone      String?
+
+  adminEmail        String            @unique
+  adminPasswordHash String
+
+  plan              SubscriptionPlan  @default(TRIAL)
+  status            SchoolStatus      @default(TRIAL)
+
+  startDate         DateTime          @default(now())
+  renewalDate       DateTime
+  terminatedAt      DateTime?
+  suspendedAt       DateTime?
+
+  maxStudents       Int               @default(2000)
+  maxRooms          Int               @default(50)
+  maxFaculty        Int               @default(200)
+
+  notes             String?
+
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  sessions          Session[]
+  classes           Class[]
+  sections          Section[]
+  students          Student[]
+  faculty           Faculty[]
+  rooms             Room[]
+  exams             Exam[]
+  shifts            Shift[]
+  seatingAssignments      SeatingAssignment[]
+  invigilatorAssignments  InvigilatorAssignment[]
+  activityLogs      ActivityLog[]
+
+  @@index([status])
+  @@index([renewalDate])
+}
+
+/// ─── SESSION (ACADEMIC YEAR) ────────────────────────────────────────
+/// The core fix for "data lost every year". Admin creates a new Session
+/// each year; Classes/Sections/Students/Exams all hang off a sessionId,
+/// so old years stay queryable forever and nothing gets overwritten.
+/// Only one Session per school should have isActive = true at a time —
+/// enforce that in the controller, not the DB.
+model Session {
+  id          String   @id @default(uuid())
+  schoolId    String
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name        String   // e.g. "2026-27"
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  classes     Class[]
+  sections    Section[]
+  students    Student[]
+  exams       Exam[]
+  shifts      Shift[]
+  seatingAssignments     SeatingAssignment[]
+  invigilatorAssignments InvigilatorAssignment[]
+
+  @@unique([schoolId, name])
+  @@index([schoolId, isActive])
+}
+
+/// ─── ACTIVITY LOG ───────────────────────────────────────────────────
+model ActivityLog {
+  id          String   @id @default(uuid())
+  schoolId    String
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  action      String
+  entity      String
+  entityId    String?
+  description String?
+  metadata    Json?
+  performedAt DateTime @default(now())
+
+  @@index([schoolId, performedAt])
+}
+
+/// ─── ACADEMIC STRUCTURE ─────────────────────────────────────────────
+/// Replaces Stream/Department/Branch. Class is session-scoped (e.g.
+/// "Class 9", "Class 12"). Section is a fully custom-named child of a
+/// class (e.g. "Commerce - A", "Red House") — admin names it freely,
+/// any number per class.
+model Class {
+  id          String   @id @default(uuid())
+  schoolId    String
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  sessionId   String
+  session     Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  name        String   // e.g. "Class 9", "Class 12"
+  order       Int      @default(0) // for sorting Class 1..12 correctly
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sections    Section[]
+  students    Student[]
+
+  @@unique([sessionId, name])
+  @@index([schoolId, sessionId])
+}
+
+model Section {
+  id        String   @id @default(uuid())
+  schoolId  String
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  sessionId String
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  classId   String
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  name      String   // fully custom, e.g. "Commerce - A", "A", "Red House"
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  students  Student[]
+
+  @@unique([classId, name])
+  @@index([schoolId, sessionId, classId])
+}
+
+/// ─── PEOPLE ─────────────────────────────────────────────────────────
+/// Faculty stays school-scoped (not session-scoped) — teachers are
+/// ongoing staff, not tied to one academic year.
+model Faculty {
+  id            String   @id @default(uuid())
+  schoolId      String
+  school        School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name          String
+  email         String
+  employeeId    String
+  designation   String
+  phone         String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  invigilatorAssignments InvigilatorAssignment[]
+
+  @@unique([schoolId, email])
+  @@unique([schoolId, employeeId])
+  @@index([schoolId])
+  @@index([email, isActive])           // for public faculty lookup
+  @@index([schoolId, isActive])        // for dashboard count
+}
+
+/// Student is session-scoped: a student's class/section is fixed for
+/// that session. Promoting a student to the next year means creating
+/// a new Student row (or a promotion routine) under the new session —
+/// this keeps every year's seating history intact and queryable.
+model Student {
+  id           String   @id @default(uuid())
+  schoolId     String
+  school       School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  sessionId    String
+  session      Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  name         String
+  enrollmentNo String
+  classId      String
+  class        Class    @relation(fields: [classId], references: [id])
+  sectionId    String
+  section      Section  @relation(fields: [sectionId], references: [id])
+  parentName   String?
+  parentEmail  String?
+  specialNeeds Boolean  @default(false)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  seatingAssignments SeatingAssignment[]
+
+  @@unique([sessionId, enrollmentNo])
+  @@index([schoolId, sessionId, classId, sectionId])
+  @@index([sessionId, enrollmentNo])
+  @@index([schoolId, sessionId, isActive])
+}
+
+/// ─── ROOMS ──────────────────────────────────────────────────────────
+/// Stays school-scoped, not session-scoped — a physical room persists
+/// across years. Only exam usage is session-bound.
+model Room {
+  id                   String   @id @default(uuid())
+  schoolId             String
+  school               School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name                 String
+  building             String?
+  floor                String?
+  rows                 Int
+  benchesPerRow        Int
+  defaultSeatsPerBench Int
+  hasCustomRowConfig   Boolean  @default(false)
+  rowConfig            Json     @default("[]")
+  seats                Json     @default("[]") // [{seatId,row,bench,position,status}]
+  totalCapacity        Int      @default(0)
+  usableCapacity       Int      @default(0)
+  isLocked             Boolean  @default(false)
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  shiftRooms           ShiftRoom[]
+  seatingAssignments   SeatingAssignment[]
+  invigilatorAssignments InvigilatorAssignment[]
+
+  @@unique([schoolId, name])
+  @@index([schoolId, isActive])
+}
+
+/// ─── EXAMS / SHIFTS ─────────────────────────────────────────────────
+model Exam {
+  id           String     @id @default(uuid())
+  schoolId     String
+  school       School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  sessionId    String
+  session      Session    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  title        String
+  academicYear String
+  examDate     DateTime
+  description  String?
+  status       ExamStatus @default(draft)
+  isLocked     Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  shifts       Shift[]
+  seatingAssignments     SeatingAssignment[]
+  invigilatorAssignments InvigilatorAssignment[]
+
+  @@index([schoolId, sessionId, status])
+  @@index([schoolId, sessionId, examDate])
+}
+
+model Shift {
+  id                  String   @id @default(uuid())
+  schoolId            String
+  school              School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  sessionId           String
+  session             Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  examId              String
+  exam                Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  name                String
+  startTime           String
+  endTime             String
+  selectedClassIds    String[]
+  selectedSectionIds  String[]
+  studentIds          String[]
+  totalStudents       Int      @default(0)
+  totalAvailableSeats Int      @default(0)
+  seatingRules        Json     @default("{}")
+  planGenerated       Boolean  @default(false)
+  planGeneratedAt     DateTime?
+  isPublished         Boolean  @default(false)
+  publishedAt         DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  shiftRooms          ShiftRoom[]
+  seatingAssignments  SeatingAssignment[]
+  invigilatorAssignments InvigilatorAssignment[]
+
+  @@index([schoolId, examId])
+  @@unique([examId, name])
+  @@index([schoolId, examId, planGenerated])
+}
+
+model ShiftRoom {
+  id              String @id @default(uuid())
+  shiftId         String
+  shift           Shift  @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  roomId          String
+  room            Room   @relation(fields: [roomId], references: [id])
+  priority        Int    @default(0)
+  usableCapacity  Int    @default(0)
+
+  @@unique([shiftId, roomId])
+  @@index([shiftId])
+}
+
+model SeatingAssignment {
+  id               String   @id @default(uuid())
+  schoolId         String
+  school           School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  sessionId        String
+  session          Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  examId           String
+  exam             Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  shiftId          String
+  shift            Shift    @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  roomId           String
+  room             Room     @relation(fields: [roomId], references: [id])
+  studentId        String
+  student          Student  @relation(fields: [studentId], references: [id])
+  seatId           String
+  row              String
+  bench            Int
+  position         String
+  isManualOverride Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([shiftId, studentId])
+  @@unique([shiftId, roomId, seatId])
+  @@index([schoolId, examId, shiftId, roomId])
+  @@index([studentId])
+  @@index([shiftId, roomId])
+  @@index([studentId, shiftId])
+}
+
+model InvigilatorAssignment {
+  id         String   @id @default(uuid())
+  schoolId   String
+  school     School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  sessionId  String
+  session    Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  examId     String
+  exam       Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  shiftId    String
+  shift      Shift    @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  roomId     String
+  room       Room     @relation(fields: [roomId], references: [id])
+  facultyId  String
+  faculty    Faculty  @relation(fields: [facultyId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@unique([shiftId, roomId, facultyId])
+  @@index([shiftId, facultyId])
+  @@index([facultyId])
+}

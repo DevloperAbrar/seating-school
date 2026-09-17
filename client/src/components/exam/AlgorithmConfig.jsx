@@ -1,0 +1,313 @@
+import { useState, useEffect } from 'react'
+import { Plus, Trash2, Info, Zap } from 'lucide-react'
+import { Select } from '../ui/Input'
+import Button from '../ui/Button'
+
+function Tip({ text }) {
+  return (
+    <p className="flex items-start gap-1.5 text-xs text-gray-400 mt-1">
+      <Info size={11} className="mt-0.5 shrink-0" />{text}
+    </p>
+  )
+}
+
+function Toggle({ label, description, checked, onChange, disabled }) {
+  return (
+    <label className={`flex items-start gap-3 ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}>
+      <div className="relative mt-0.5 shrink-0">
+        <input type="checkbox" className="sr-only" checked={checked}
+          onChange={(e) => !disabled && onChange(e.target.checked)} />
+        <div className={`w-9 h-5 rounded-full transition-colors ${checked ? 'bg-navy' : 'bg-gray-200'}`} />
+        <div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-4' : ''}`} />
+      </div>
+      <div>
+        <p className="text-sm font-medium text-gray-800">{label}</p>
+        {description && <p className="text-xs text-gray-400 mt-0.5">{description}</p>}
+      </div>
+    </label>
+  )
+}
+
+// 3-way toggle: 'false' | aValue | bValue
+function TriToggle({ label, description, value, offLabel = 'Off', aLabel, bLabel, aValue, bValue, onChange }) {
+  const isOff = !value || value === 'false'
+  const isA   = value === aValue
+  const isB   = value === bValue
+
+  const cycle = () => {
+    if (isOff) onChange(aValue)
+    else if (isA) onChange(bValue)
+    else onChange('false')
+  }
+
+  return (
+    <div className="flex items-start gap-3">
+      <button type="button" onClick={cycle}
+        className={`relative mt-0.5 shrink-0 w-9 h-5 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-navy/40 ${!isOff ? 'bg-navy' : 'bg-gray-200'}`}>
+        <div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${isB ? 'translate-x-4' : isA ? 'translate-x-2' : ''}`} />
+      </button>
+      <div className="flex-1">
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-medium text-gray-800">{label}</p>
+          <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${isOff ? 'bg-gray-100 text-gray-400' : 'bg-navy/10 text-navy'}`}>
+            {isOff ? offLabel : isA ? aLabel : bLabel}
+          </span>
+        </div>
+        {description && <p className="text-xs text-gray-400 mt-0.5">{description}</p>}
+        {!isOff && (
+          <div className="flex gap-2 mt-2">
+            {[{ v: aValue, l: aLabel }, { v: bValue, l: bLabel }].map(({ v, l }) => (
+              <button key={v} type="button" onClick={() => onChange(v)}
+                className={`text-xs px-2.5 py-1 rounded-md border transition-colors ${value === v ? 'border-navy bg-navy text-white' : 'border-gray-200 text-gray-500 hover:border-navy/40'}`}>
+                {l}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// Binary radio option card
+function OptionCards({ label, tip, value, onChange, options }) {
+  return (
+    <div>
+      <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">{label}</p>
+      <div className={`grid gap-2 grid-cols-${options.length}`}>
+        {options.map((opt) => (
+          <label key={opt.value}
+            className={`flex flex-col gap-1 p-3 rounded-lg border-2 cursor-pointer transition-colors ${value === opt.value ? 'border-navy bg-white' : 'border-gray-200 bg-white hover:border-gray-300'}`}>
+            <div className="flex items-center gap-2">
+              <input type="radio" name={label} value={opt.value} checked={value === opt.value}
+                onChange={() => onChange(opt.value)} className="accent-navy" />
+              <span className="text-sm font-medium text-gray-800">{opt.label}</span>
+            </div>
+            <p className="text-xs text-gray-400 leading-snug pl-5">{opt.desc}</p>
+          </label>
+        ))}
+      </div>
+      {tip && <Tip text={tip} />}
+    </div>
+  )
+}
+
+const DEFAULT_RULES = {
+  classSeparationMode: 'strict',
+  groupBy: 'class',
+  consecutivePairing: false,
+  autoPair: false,
+  pairingMode: 'interleaved',
+  classPairs: [],
+  rollNumberOrder: 'asc',
+  genderSeparation: 'none',
+  gapSeating: 'false',
+  roomFillStrategy: 'pack',
+  fillDirection: 'front',
+}
+
+export default function AlgorithmConfig({ value, onChange, classes = [] }) {
+  const [rules, setRules] = useState(() => ({ ...DEFAULT_RULES, ...(value || {}) }))
+
+  useEffect(() => {
+    if (value) setRules({ ...DEFAULT_RULES, ...value })
+  }, [JSON.stringify(value)]) // eslint-disable-line
+
+  const update = (patch) => {
+    const next = { ...rules, ...patch }
+    setRules(next)
+    onChange?.(next)
+  }
+
+  const addPair = () => update({
+    classPairs: [...rules.classPairs,
+      { positions: ['L', 'R'], classes: [classes[0]?.id || '', classes[1]?.id || ''] }]
+  })
+
+  const removePair = (i) => update({ classPairs: rules.classPairs.filter((_, idx) => idx !== i) })
+
+  const updatePair = (i, patch) =>
+    update({ classPairs: rules.classPairs.map((p, idx) => idx === i ? { ...p, ...patch } : p) })
+
+  return (
+    <div className="space-y-5">
+
+      {/* ── Class Separation ────────────────────────────────────── */}
+      <div>
+        <label className="label">Class Separation Mode</label>
+        <div className="flex gap-3">
+          {['strict', 'relaxed'].map((mode) => (
+            <label key={mode} className="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="classSep" value={mode}
+                checked={rules.classSeparationMode === mode}
+                onChange={() => update({ classSeparationMode: mode })}
+                className="accent-navy" />
+              <span className="text-sm capitalize">{mode}</span>
+            </label>
+          ))}
+        </div>
+        <Tip text="Strict: no two students from the same class on the same bench. Relaxed: best-effort only." />
+      </div>
+
+      {/* ── Group By ────────────────────────────────────────────── */}
+      <div>
+        <Select label="Group By" value={rules.groupBy}
+          onChange={(e) => update({ groupBy: e.target.value })}>
+          <option value="class">Class only</option>
+          <option value="section">Class + Section</option>
+        </Select>
+        <Tip text="Class + Section keeps e.g. 'Commerce - A' separate from 'Commerce - B' during pairing, instead of treating the whole class as one group." />
+      </div>
+
+      {/* ── Gender Separation ───────────────────────────────────── */}
+      <div>
+        <Select label="Gender Separation" value={rules.genderSeparation}
+          onChange={(e) => update({ genderSeparation: e.target.value })}>
+          <option value="none">None</option>
+          <option value="rows">By Rows (female rows first)</option>
+          <option value="rooms">By Rooms (female rooms first)</option>
+        </Select>
+      </div>
+
+      {/* ── Sort by Roll Number ─────────────────────────────────── */}
+      <TriToggle
+        label="Sort by Roll Number"
+        description="Seat students in enrollment number order within each class."
+        value={rules.rollNumberOrder}
+        offLabel="Off (random)" aLabel="Ascending" bLabel="Descending"
+        aValue="asc" bValue="desc"
+        onChange={(v) => update({ rollNumberOrder: v })}
+      />
+
+      {/* ── Gap Seating ─────────────────────────────────────────── */}
+      <TriToggle
+        label="Gap Seating"
+        description="Leave a gap between students to reduce copying."
+        value={rules.gapSeating}
+        offLabel="Off" aLabel="Side-by-side" bLabel="Row-wise"
+        aValue="side" bValue="row"
+        onChange={(v) => update({ gapSeating: v })}
+      />
+      {rules.gapSeating === 'side' && <p className="text-xs text-gray-400 ml-12 -mt-3">Uses only left seat of each bench — right seat stays empty.</p>}
+      {rules.gapSeating === 'row'  && <p className="text-xs text-gray-400 ml-12 -mt-3">Uses bench 1, skips bench 2, uses bench 3… entire alternating benches stay empty.</p>}
+
+      {/* ── Room Fill Strategy ──────────────────────────────────── */}
+      <OptionCards
+        label="Room Fill Strategy"
+        value={rules.roomFillStrategy}
+        onChange={(v) => update({ roomFillStrategy: v })}
+        options={[
+          { value: 'pack', label: 'Pack',   desc: 'Fill each room completely before moving to the next.' },
+          { value: 'spread', label: 'Spread', desc: 'Distribute students evenly across all rooms.' },
+        ]}
+        tip="Spread is useful when you want balanced room occupancy."
+      />
+
+      {/* ── Fill Direction ──────────────────────────────────────── */}
+      <OptionCards
+        label="Fill Direction"
+        value={rules.fillDirection}
+        onChange={(v) => update({ fillDirection: v })}
+        options={[
+          { value: 'front', label: 'Front → Back', desc: 'Start seating from row A (front of room).' },
+          { value: 'back',  label: 'Back → Front', desc: 'Start seating from the last row (back of room).' },
+        ]}
+      />
+
+      {/* ── Consecutive Class Pairing ───────────────────────────── */}
+      <Toggle
+        label="Consecutive Class Pairing"
+        description="Assign specific class pairs to alternate bench positions."
+        checked={rules.consecutivePairing}
+        onChange={(v) => update({ consecutivePairing: v, autoPair: v ? rules.autoPair : false })}
+      />
+
+      {rules.consecutivePairing && (
+        <div className="border border-gray-200 rounded-xl p-4 space-y-4 bg-gray-50">
+
+          {/* Auto-pair toggle */}
+          <div className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${rules.autoPair ? 'border-navy bg-white' : 'border-gray-200 bg-white hover:border-gray-300'}`}
+            onClick={() => update({ autoPair: !rules.autoPair })}>
+            <div className="mt-0.5">
+              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${rules.autoPair ? 'border-navy bg-navy' : 'border-gray-300'}`}>
+                {rules.autoPair && <Zap size={11} className="text-white" />}
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-800">Auto-Pair Classes</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Automatically pairs classes by balancing student counts — largest class paired with smallest for even column fill. No manual selection needed.
+              </p>
+            </div>
+          </div>
+
+          {/* Pairing mode */}
+          <OptionCards
+            label="Pairing Mode"
+            value={rules.pairingMode}
+            onChange={(v) => update({ pairingMode: v })}
+            options={[
+              { value: 'interleaved', label: 'Interleaved', desc: 'Cycles pairs row by row: Row 1→Pair A, Row 2→Pair B, Row 3→Pair A…' },
+              { value: 'block',       label: 'Block',       desc: 'Fills all columns with pair 1 first (top→bottom), then pair 2, then pair 3…' },
+            ]}
+          />
+
+          {/* Manual pairs — hidden when autoPair is on */}
+          {!rules.autoPair && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-semibold text-gray-700">Class Pairs</p>
+                <Button size="sm" variant="secondary" icon={Plus} onClick={addPair} type="button">Add Pair</Button>
+              </div>
+
+              {rules.classPairs.length === 0 && (
+                <p className="text-xs text-gray-400 text-center py-3">
+                  No pairs defined. Add a pair to configure which classes share benches.
+                </p>
+              )}
+
+              {rules.classPairs.map((pair, i) => (
+                <div key={i} className="flex items-start gap-3 bg-white border border-gray-200 rounded-lg p-3 mb-2">
+                  <div className="flex items-center justify-center w-5 h-5 rounded-full bg-navy/10 text-navy text-xs font-bold shrink-0 mt-6">{i + 1}</div>
+                  <div className="flex-1 grid grid-cols-2 gap-3">
+                    {[0, 1].map((pos) => (
+                      <div key={pos}>
+                        <label className="label">{pos === 0 ? 'Class A (Left seat)' : 'Class B (Right seat)'}</label>
+                        <select className="input" value={pair.classes[pos] || ''}
+                          onChange={(e) => {
+                            const c = [...pair.classes]; c[pos] = e.target.value
+                            updatePair(i, { classes: c })
+                          }}>
+                          <option value="">Select class…</option>
+                          {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                  <button type="button" onClick={() => removePair(i)}
+                    className="mt-6 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded">
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              ))}
+
+              {rules.classPairs.length > 0 && (
+                <p className="text-xs text-gray-400 mt-1">
+                  {rules.pairingMode === 'interleaved'
+                    ? `${rules.classPairs.length} pair(s) will cycle row by row.`
+                    : `Seats filled pair by pair: ${rules.classPairs.map((_, i) => `Pair ${i + 1}`).join(' → ')}.`}
+                </p>
+              )}
+            </div>
+          )}
+
+          {rules.autoPair && (
+            <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              Auto-pair will run when seating is generated. Pairs are computed from the actual student distribution at that time.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
