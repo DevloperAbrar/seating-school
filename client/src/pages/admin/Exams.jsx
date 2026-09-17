@@ -129,8 +129,20 @@ export default function Exams() {
             {...register('title', { required: 'Required' })}
           />
           <div className="grid grid-cols-2 gap-4">
-            <Input label="Academic Year" required placeholder="e.g. 2024-25" error={errors.academicYear?.message} {...register('academicYear', { required: 'Required' })} />
-            <Input label="Start Date" type="date" required error={errors.examDate?.message} {...register('examDate', { required: 'Required' })} />
+            <Input
+              label="Academic Year"
+              required
+              placeholder="e.g. 2024-25"
+              error={errors.academicYear?.message}
+              {...register('academicYear', { required: 'Required' })}
+            />
+            <Input
+              label="Start Date"
+              type="date"
+              required
+              error={errors.examDate?.message}
+              {...register('examDate', { required: 'Required' })}
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <Input
