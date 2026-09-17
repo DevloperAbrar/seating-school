@@ -27,14 +27,23 @@ export default function Exams() {
 
   const openAdd = () => { reset({}); modal.open(null) }
   const openEdit = (row) => {
-    reset({ ...row, examDate: toInputDate(row.examDate) })
+    reset({
+      ...row,
+      examDate: toInputDate(row.examDate),
+      examEndDate: toInputDate(row.examEndDate),
+    })
     modal.open(row)
   }
 
   const onSubmit = (data) => {
+    // send null explicitly if end date cleared
+    const payload = {
+      ...data,
+      examEndDate: data.examEndDate || null,
+    }
     const fn = modal.data?.id
-      ? () => examsAPI.update(modal.data.id, data)
-      : () => examsAPI.create(data)
+      ? () => examsAPI.update(modal.data.id, payload)
+      : () => examsAPI.create(payload)
     mutate(fn, {
       successMsg: modal.data?.id ? 'Exam updated' : 'Exam created',
       onSuccess: () => { modal.close(); refetch() },
@@ -48,6 +57,13 @@ export default function Exams() {
     })
   }
 
+  const fmtDateRange = (r) => {
+    if (r.examEndDate) {
+      return `${fmtDate(r.examDate)} – ${fmtDate(r.examEndDate)}`
+    }
+    return fmtDate(r.examDate)
+  }
+
   const columns = [
     {
       key: 'title', label: 'Exam',
@@ -58,7 +74,15 @@ export default function Exams() {
         </div>
       ),
     },
-    { key: 'examDate', label: 'Date', render: (r) => <span className="flex items-center gap-1.5"><CalendarDays size={13} className="text-gray-400" />{fmtDate(r.examDate)}</span> },
+    {
+      key: 'examDate', label: 'Date',
+      render: (r) => (
+        <span className="flex items-center gap-1.5">
+          <CalendarDays size={13} className="text-gray-400" />
+          {fmtDateRange(r)}
+        </span>
+      ),
+    },
     { key: 'status', label: 'Status', render: (r) => <Badge className={examStatusColor[r.status]}>{r.status}</Badge> },
     { key: 'isLocked', label: '', render: (r) => r.isLocked ? <Badge color="red">Locked</Badge> : null },
     {
@@ -100,8 +124,21 @@ export default function Exams() {
           <Input label="Exam Title" required placeholder="e.g. End Semester Examination Nov 2024" error={errors.title?.message} {...register('title', { required: 'Required' })} />
           <div className="grid grid-cols-2 gap-4">
             <Input label="Academic Year" required placeholder="e.g. 2024-25" error={errors.academicYear?.message} {...register('academicYear', { required: 'Required' })} />
-            <Input label="Exam Date" type="date" required error={errors.examDate?.message} {...register('examDate', { required: 'Required' })} />
+            <Input label="Start Date" type="date" required error={errors.examDate?.message} {...register('examDate', { required: 'Required' })} />
           </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="End Date"
+              type="date"
+              placeholder="Optional — for multi-day exams"
+              error={errors.examEndDate?.message}
+              {...register('examEndDate')}
+            />
+            <div /> {/* spacer */}
+          </div>
+          <p className="text-xs text-gray-400 -mt-2">
+            Set an end date if the same seating plan applies across multiple days.
+          </p>
           {modal.data?.id && (
             <Select label="Status" {...register('status')}>
               {['draft', 'published', 'ongoing', 'completed'].map((s) => <option key={s} value={s}>{s}</option>)}

@@ -264,6 +264,8 @@ model Exam {
   isLocked     Boolean    @default(false)
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+  examDate     DateTime
+  examEndDate  DateTime?
 
   shifts       Shift[]
   seatingAssignments     SeatingAssignment[]

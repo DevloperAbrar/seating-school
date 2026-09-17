@@ -29,7 +29,7 @@ const studentLookup = asyncHandler(async (req, res) => {
     include: {
       room: { select: { name: true, building: true, floor: true } },
       shift: { select: { name: true, startTime: true, endTime: true, isPublished: true } },
-      exam: { select: { title: true, academicYear: true, examDate: true, status: true } },
+      exam: { select: { title: true, academicYear: true, examDate: true, examEndDate: a.exam?.examEndDate, status: true } },
     },
   });
 
@@ -76,7 +76,7 @@ const facultyLookup = asyncHandler(async (req, res) => {
     include: {
       room: { select: { name: true, building: true, floor: true } },
       shift: { select: { name: true, startTime: true, endTime: true, isPublished: true } },
-      exam: { select: { title: true, academicYear: true, examDate: true, status: true } },
+      exam: { select: { title: true, academicYear: true, examDate: true, examEndDate: d.exam?.examEndDate, status: true } },
     },
   });
 

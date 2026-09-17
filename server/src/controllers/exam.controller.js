@@ -19,14 +19,22 @@ const getExams = asyncHandler(async (req, res) => {
 });
 
 const createExam = asyncHandler(async (req, res) => {
-  const { title, academicYear, examDate, description } = req.body;
+  const { title, academicYear, examDate, examEndDate, description } = req.body;
   if (!title || !academicYear || !examDate) throw new ApiError(400, "title, academicYear, examDate required");
+
+  if (examEndDate && new Date(examEndDate) < new Date(examDate)) {
+    throw new ApiError(400, "End date cannot be before start date");
+  }
 
   const exam = await prisma.exam.create({
     data: {
       schoolId: req.schoolId,
       sessionId: req.sessionId,
-      title, academicYear, examDate: new Date(examDate), description: description || "",
+      title,
+      academicYear,
+      examDate: new Date(examDate),
+      examEndDate: examEndDate ? new Date(examEndDate) : null,
+      description: description || "",
     },
   });
   res.status(201).json(new ApiResponse(201, "Exam created", exam));
@@ -37,13 +45,22 @@ const updateExam = asyncHandler(async (req, res) => {
   if (!exam) throw new ApiError(404, "Exam not found");
   if (exam.isLocked) throw new ApiError(403, "Exam is locked");
 
-  const { title, academicYear, examDate, description, status } = req.body;
+  const { title, academicYear, examDate, examEndDate, description, status } = req.body;
+
+  const resolvedStart = examDate ? new Date(examDate) : exam.examDate;
+  const resolvedEnd = examEndDate ? new Date(examEndDate) : (examEndDate === null ? null : exam.examEndDate);
+
+  if (resolvedEnd && resolvedEnd < resolvedStart) {
+    throw new ApiError(400, "End date cannot be before start date");
+  }
+
   const updated = await prisma.exam.update({
     where: { id: req.params.id },
     data: {
       title,
       academicYear,
-      examDate: examDate ? new Date(examDate) : exam.examDate,
+      examDate: resolvedStart,
+      examEndDate: resolvedEnd,
       description,
       status,
     },

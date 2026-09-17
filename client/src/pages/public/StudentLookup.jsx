@@ -154,8 +154,9 @@ export default function StudentLookup() {
                       {/* Exam header */}
                       <div className="px-4 py-3" style={{ background: '#0d1f4e' }}>
                         <p className="font-semibold text-sm text-white">{a.exam}</p>
+                        {/* after */}
                         <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.55)' }}>
-                          {a.academicYear} · {fmtDate(a.examDate)}
+                          {a.academicYear} · {a.examEndDate ? `${fmtDate(a.examDate)} – ${fmtDate(a.examEndDate)}` : fmtDate(a.examDate)}
                         </p>
                       </div>
 
