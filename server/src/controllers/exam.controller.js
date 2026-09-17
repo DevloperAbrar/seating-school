@@ -73,7 +73,6 @@ const deleteExam = asyncHandler(async (req, res) => {
   if (!exam) throw new ApiError(404, "Exam not found");
   if (exam.isLocked) throw new ApiError(403, "Exam is locked — cannot delete");
 
-  // Cascade delete shifts + assignments (Prisma handles via onDelete: Cascade in schema)
   await prisma.exam.delete({ where: { id: req.params.id } });
   res.json(new ApiResponse(200, "Exam deleted"));
 });
@@ -84,7 +83,7 @@ const getShifts = asyncHandler(async (req, res) => {
   const shifts = await prisma.shift.findMany({
     where: { examId: req.params.examId, schoolId: req.schoolId, sessionId: req.sessionId },
     orderBy: { startTime: "asc" },
-include: { shiftRooms: { include: { room: { select: { id: true, name: true, building: true, usableCapacity: true } } } } },
+    include: { shiftRooms: { include: { room: { select: { id: true, name: true, building: true, usableCapacity: true } } } } },
   });
   res.json(new ApiResponse(200, "Shifts fetched", shifts));
 });
@@ -142,8 +141,6 @@ const resolveStudents = asyncHandler(async (req, res) => {
   const shift = await prisma.shift.findFirst({ where: { id: req.params.shiftId, examId: req.params.examId, schoolId: req.schoolId, sessionId: req.sessionId } });
   if (!shift) throw new ApiError(404, "Shift not found");
 
-  // Same resolve-then-seat flow as before; only the filter fields changed
-  // from branch/year to class/section.
   const where = { schoolId: req.schoolId, sessionId: req.sessionId, isActive: true };
   if (shift.selectedClassIds?.length) where.classId = { in: shift.selectedClassIds };
   if (shift.selectedSectionIds?.length) where.sectionId = { in: shift.selectedSectionIds };
@@ -176,8 +173,8 @@ const getInvigilators = asyncHandler(async (req, res) => {
   const assignments = await prisma.invigilatorAssignment.findMany({
     where: { examId: req.params.examId, shiftId: req.params.shiftId, schoolId: req.schoolId, sessionId: req.sessionId },
     include: {
-      faculty: { select: { id: true, name: true, email: true, designation: true } }, // ✅ added id
-      room: { select: { id: true, name: true, building: true } },                     // ✅ added id
+      faculty: { select: { id: true, name: true, email: true, designation: true } },
+      room: { select: { id: true, name: true, building: true } },
     },
   });
   res.json(new ApiResponse(200, "Invigilators fetched", assignments));
