@@ -1,5 +1,5 @@
 import { useForm } from 'react-hook-form'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { Eye, EyeOff, Mail, Lock, ShieldCheck } from 'lucide-react'
 import { useState } from 'react'
 import useStore from '../../store'
@@ -64,7 +64,7 @@ export default function Login() {
           <div className="flex flex-col gap-3 w-full max-w-xs">
             {[
               'Generate seating plans instantly',
-              'Class-wise mixing algorithm',
+              'Branch-wise mixing algorithm',
               'Print-ready PDF seat labels',
             ].map((f) => (
               <div key={f} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-white"
@@ -90,7 +90,7 @@ export default function Login() {
 
             <h1 className="text-2xl font-bold text-gray-900 mb-1">Welcome back</h1>
             <p className="text-sm text-gray-500 mb-6">
-              Sign in to your {import.meta.env.VITE_SCHOOL_NAME || 'Admin'} account
+              Sign in to your {import.meta.env.VITE_COLLEGE_NAME || 'Admin'} account
             </p>
 
             {/* secure badge */}
@@ -111,7 +111,7 @@ export default function Login() {
                   <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
                     type="email"
-                    placeholder="admin@school.edu"
+                    placeholder="admin@college.edu"
                     autoComplete="email"
                     className="w-full pl-9 pr-4 py-2.5 rounded-lg text-sm border outline-none transition-all"
                     style={{
@@ -170,8 +170,7 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 rounded-xl text-white font-semibold text-sm tracking-wide transition-opacity disabled:opacity-70 mt-1"
-                style={{ background: 'linear-gradient(90deg, #f97316, #ea6c0a)' }}
+                className="w-full py-3 rounded-xl text-white font-semibold text-sm tracking-wide transition-opacity disabled:opacity-70 mt-1"                style={{ background: 'linear-gradient(90deg, #f97316, #ea6c0a)' }}
               >
                 {loading ? 'Signing in…' : 'Sign In →'}
               </button>
@@ -179,14 +178,14 @@ export default function Login() {
 
             {/* public links */}
             <div className="flex gap-4 mt-6 pt-5 border-t border-gray-100">
-              <a href="/lookup/student"
+              <Link to="/lookup/student"
                 className="flex-1 text-center text-xs text-gray-400 hover:text-gray-600 transition-colors py-1">
                 Student Lookup
-              </a>
-              <a href="/lookup/faculty"
+              </Link>
+              <Link to="/lookup/faculty"
                 className="flex-1 text-center text-xs text-gray-400 hover:text-gray-600 transition-colors py-1">
                 Faculty Duty
-              </a>
+              </Link>
             </div>
           </div>
 
