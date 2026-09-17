@@ -40,7 +40,13 @@ const updateExam = asyncHandler(async (req, res) => {
   const { title, academicYear, examDate, description, status } = req.body;
   const updated = await prisma.exam.update({
     where: { id: req.params.id },
-    data: { title, academicYear, examDate, description, status },
+    data: {
+      title,
+      academicYear,
+      examDate: examDate ? new Date(examDate) : exam.examDate,
+      description,
+      status,
+    },
   });
   res.json(new ApiResponse(200, "Exam updated", updated));
 });
